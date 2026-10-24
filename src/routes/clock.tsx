@@ -76,15 +76,6 @@ function Countdown() {
   const total = h * 3600 + m * 60 + s;
   const idle = !cd.running && cd.remaining === 0;
   const pct = cd.total ? cd.remaining / cd.total : 1;
-  const Dial = ({ v, set, max, label }: { v: number; set: (n: number) => void; max: number; label: string }) => (
-    <div className="flex flex-col items-center">
-      <button className="btn-icon" onClick={() => set((v + 1) % (max + 1))}>▲</button>
-      <input type="number" min={0} max={max} value={pad(v)} onChange={(e) => set(Math.min(max, Math.max(0, +e.target.value || 0)))}
-        className="mono w-20 rounded-xl bg-background/60 py-2 text-center text-4xl font-bold outline-none focus:ring-2 focus:ring-interactive/40" />
-      <button className="btn-icon" onClick={() => set((v - 1 + max + 1) % (max + 1))}>▼</button>
-      <span className="label-xs mt-1">{label}</span>
-    </div>
-  );
   return (
     <div className="panel">
       <div className="label-xs">Independent Countdown Timer</div>
@@ -104,3 +95,15 @@ function Countdown() {
     </div>
   );
 }
+
+function Dial({ v, set, max, label }: { v: number; set: (n: number) => void; max: number; label: string }) {
+  return (
+    <div className="flex flex-col items-center">
+      <button className="btn-icon" onClick={() => set((v + 1) % (max + 1))}>▲</button>
+      <input type="number" min={0} max={max} value={pad(v)} onChange={(e) => set(Math.min(max, Math.max(0, +e.target.value || 0)))}
+        className="mono w-20 rounded-xl bg-background/60 py-2 text-center text-4xl font-bold outline-none focus:ring-2 focus:ring-interactive/40" />
+      <button className="btn-icon" onClick={() => set((v - 1 + max + 1) % (max + 1))}>▼</button>
+      <span className="label-xs mt-1">{label}</span>
+    </div>
+  )}
+
