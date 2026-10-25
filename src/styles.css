@@ -110,21 +110,22 @@
   input[type="range"] { accent-color: var(--color-interactive); }
 }
 
-@layer components {
-  .panel { @apply rounded-2xl border border-border bg-card p-5; }
-  .panel-tight { @apply rounded-xl border border-border bg-card p-3; }
-  .label-xs { @apply text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground; }
-  .field { @apply w-full rounded-lg border border-input bg-background/60 px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/70 focus:border-interactive focus:ring-2 focus:ring-interactive/30; }
-  .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40; }
-  .btn-blue { @apply btn bg-interactive text-primary-foreground hover:brightness-110; box-shadow: var(--glow-blue); }
-  .btn-focus { @apply btn bg-focus text-primary-foreground hover:brightness-110; box-shadow: var(--glow-focus); }
-  .btn-break { @apply btn bg-break text-background hover:brightness-110; box-shadow: var(--glow-break); }
-  .btn-ghost { @apply btn bg-secondary text-secondary-foreground hover:bg-accent; }
-  .btn-icon { @apply inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-accent hover:text-foreground; }
-  .chip { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold; }
-  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+@utility panel { @apply rounded-2xl border border-border bg-card p-5; }
+@utility panel-tight { @apply rounded-xl border border-border bg-card p-3; }
+@utility label-xs { @apply text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground; }
+@utility field { @apply w-full rounded-lg border border-input bg-background/60 px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/70 focus:border-interactive focus:ring-2 focus:ring-interactive/30; }
+@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40; }
+@utility btn-blue { @apply btn bg-interactive text-primary-foreground hover:brightness-110; box-shadow: var(--glow-blue); }
+@utility btn-focus { @apply btn bg-focus text-primary-foreground hover:brightness-110; box-shadow: var(--glow-focus); }
+@utility btn-break { @apply btn bg-break text-background hover:brightness-110; box-shadow: var(--glow-break); }
+@utility btn-ghost { @apply btn bg-secondary text-secondary-foreground hover:bg-accent; }
+@utility btn-icon { @apply inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-accent hover:text-foreground; }
+@utility chip { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold; }
+@utility mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+@utility prose-note { @apply text-[15px] leading-7 text-foreground/90; }
 
-  .prose-note { @apply text-[15px] leading-7 text-foreground/90; }
+@layer components {
+
   .prose-note h1 { @apply mb-3 mt-6 text-3xl font-extrabold tracking-tight text-foreground; }
   .prose-note h2 { @apply mb-2 mt-5 text-2xl font-bold text-foreground; }
   .prose-note h3 { @apply mb-2 mt-4 text-lg font-bold text-foreground; }
