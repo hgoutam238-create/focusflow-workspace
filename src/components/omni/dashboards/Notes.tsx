@@ -1,21 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
 import { useMemo, useRef, useState } from "react";
 import { Plus, Bold, Italic, Heading1, Heading2, Heading3, Code, FileCode, List, AlertTriangle, Star, Lock, Unlock, Trash2, Search } from "lucide-react";
 import { PageHeader } from "@/components/omni/Shell";
 import { useData, uid, THOUGHT_MODES, projectById, type ThoughtMode, type Note } from "@/lib/store";
 import { renderMarkdown } from "@/lib/markdown";
+import { toast } from "sonner";
 
-export const Route = createFileRoute("/notes")({
-  head: () => ({
-    meta: [
-      { title: "Power-Note Lab · OmniFocus Matrix" },
-      { name: "description", content: "Markdown notes segregated by project and thought mode." },
-      { property: "og:title", content: "Power-Note Lab · OmniFocus Matrix" },
-      { property: "og:description", content: "Markdown notes segregated by project and thought mode." },
-    ],
-  }),
-  component: NotesPage,
-});
+
 
 export const MODE_STYLE: Record<ThoughtMode, string> = {
   "Study/Theory": "bg-interactive/15 text-interactive",
@@ -24,7 +15,7 @@ export const MODE_STYLE: Record<ThoughtMode, string> = {
   "Action Plan": "bg-break/15 text-break",
 };
 
-function NotesPage() {
+export function NotesPage() {
   const { notes, projects, add, update, remove } = useData();
   const [sel, setSel] = useState<string | null>(notes[0]?.id ?? null);
   const [pf, setPf] = useState(""); const [mf, setMf] = useState(""); const [q, setQ] = useState("");
@@ -36,6 +27,7 @@ function NotesPage() {
   const note = notes.find((n) => n.id === sel);
 
   const create = () => {
+    if (!pf || !mf) { toast.error("Select a project and thought mode before creating a note"); return; }
     const now = new Date().toISOString(); const id = uid();
     const raw = "# New note\n\nStart writing…";
     add("notes", { id, project_id: pf || projects[0]?.id || "", title: "Untitled note", raw_content: raw, markdown_html: renderMarkdown(raw), created_at: now, updated_at: now, category_tag: (mf as ThoughtMode) || "Fleeting Thought", absolute_privacy_flag: false });
@@ -44,7 +36,7 @@ function NotesPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Tab 05" title="Power-Note Lab"><button className="btn-blue" onClick={create}><Plus className="h-4 w-4" />New note</button></PageHeader>
+      <PageHeader eyebrow="Tab 05" title="Power-Note Lab"><Button variant="ghost" className="btn-blue" onClick={create} disabled={!pf || !mf}><Plus className="h-4 w-4" />New note</Button></PageHeader>
       <div className="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
         <div className="space-y-3">
           <div className="relative"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><input className="field pl-9" placeholder="Search notes" value={q} onChange={(e) => setQ(e.target.value)} /></div>
@@ -57,7 +49,7 @@ function NotesPage() {
               const p = projectById(projects, n.project_id);
               const hidden = n.absolute_privacy_flag && !revealed[n.id];
               return (
-                <button key={n.id} onClick={() => setSel(n.id)} className={`w-full rounded-xl border p-3 text-left transition ${sel === n.id ? "border-interactive bg-elevated" : "border-border bg-card hover:border-interactive/40"}`}>
+                <Button variant="ghost" key={n.id} onClick={() => setSel(n.id)} className={`h-auto w-full flex-col items-stretch whitespace-normal rounded-xl border p-3 text-left transition ${sel === n.id ? "border-interactive bg-elevated" : "border-border bg-card hover:border-interactive/40"}`}>
                   <div className="flex flex-wrap gap-1.5">
                     <span className={`chip ${MODE_STYLE[n.category_tag]}`}>[{n.category_tag}]</span>
                     {p && <span className="chip" style={{ background: `color-mix(in oklab, ${p.color_hex} 18%, transparent)`, color: p.color_hex }}>{p.name}</span>}
@@ -66,7 +58,7 @@ function NotesPage() {
                   <div className="mt-2 truncate font-semibold">{n.title}</div>
                   <div className={`mt-0.5 line-clamp-2 text-xs text-muted-foreground ${hidden ? "blur-sm select-none" : ""}`}>{n.raw_content.replace(/[#*`>:]/g, "").slice(0, 140)}</div>
                   <div className="mono mt-2 text-[10px] text-muted-foreground">Updated {new Date(n.updated_at).toLocaleString()}</div>
-                </button>
+                </Button>
               );
             })}
             {!list.length && <div className="panel text-center text-sm text-muted-foreground">No notes yet.</div>}
@@ -104,32 +96,32 @@ function Editor({ note, view, setView, onChange, onDelete, revealed, reveal }: {
     { icon: List, fn: () => wrap("- ", "\n  - nested item", "item", true), t: "List" },
   ];
   if (note.absolute_privacy_flag && !revealed) {
-    return <div className="panel grid min-h-[60vh] place-items-center text-center"><div><Lock className="mx-auto h-8 w-8 text-muted-foreground" /><div className="mt-3 font-semibold">Private note</div><button className="btn-ghost mt-4" onClick={reveal}>Reveal for this session</button></div></div>;
+    return <div className="panel grid min-h-[60vh] place-items-center text-center"><div><Lock className="mx-auto h-8 w-8 text-muted-foreground" /><div className="mt-3 font-semibold">Private note</div><Button variant="ghost" className="btn-ghost mt-4" onClick={reveal}>Reveal for this session</Button></div></div>;
   }
   return (
     <div className="panel relative">
       <input value={note.title} onChange={(e) => onChange({ title: e.target.value })} className="w-full bg-transparent text-2xl font-extrabold outline-none" />
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <select className="field !w-auto" value={note.project_id} onChange={(e) => onChange({ project_id: e.target.value })}>{projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-        {THOUGHT_MODES.map((m) => <button key={m} onClick={() => onChange({ category_tag: m })} className={`chip !px-3 !py-1 ${note.category_tag === m ? MODE_STYLE[m] + " ring-1 ring-current" : "bg-muted text-muted-foreground"}`}>[{m}]</button>)}
+        {THOUGHT_MODES.map((m) => <Button variant="ghost" key={m} onClick={() => onChange({ category_tag: m })} className={`chip !px-3 !py-1 ${note.category_tag === m ? MODE_STYLE[m] + " ring-1 ring-current" : "bg-muted text-muted-foreground"}`}>[{m}]</Button>)}
         <div className="ml-auto flex gap-1">
-          <button className="btn-icon" title="Privacy" onClick={() => onChange({ absolute_privacy_flag: !note.absolute_privacy_flag })}>{note.absolute_privacy_flag ? <Lock className="h-4 w-4 text-warn" /> : <Unlock className="h-4 w-4" />}</button>
-          <button className="btn-icon hover:!text-focus" onClick={onDelete}><Trash2 className="h-4 w-4" /></button>
+          <Button variant="ghost" className="btn-icon" title="Privacy" onClick={() => onChange({ absolute_privacy_flag: !note.absolute_privacy_flag })}>{note.absolute_privacy_flag ? <Lock className="h-4 w-4 text-warn" /> : <Unlock className="h-4 w-4" />}</Button>
+          <Button variant="ghost" className="btn-icon hover:!text-focus" onClick={onDelete}><Trash2 className="h-4 w-4" /></Button>
         </div>
       </div>
       <div className="mt-4 flex items-center gap-1 border-y border-border py-2">
-        {tools.map(({ icon: I, fn, t }) => <button key={t} title={t} className="btn-icon" onClick={fn}><I className="h-4 w-4" /></button>)}
+        {tools.map(({ icon: I, fn, t }) => <Button variant="ghost" key={t} title={t} className="btn-icon" onClick={fn}><I className="h-4 w-4" /></Button>)}
         <div className="ml-auto flex rounded-lg bg-background/60 p-0.5 text-xs">
-          {(["edit", "split", "preview"] as const).map((v) => <button key={v} onClick={() => setView(v)} className={`rounded-md px-2.5 py-1 capitalize ${view === v ? "bg-elevated" : "text-muted-foreground"}`}>{v}</button>)}
+          {(["edit", "split", "preview"] as const).map((v) => <Button variant="ghost" key={v} onClick={() => setView(v)} className={`rounded-md px-2.5 py-1 capitalize ${view === v ? "bg-elevated" : "text-muted-foreground"}`}>{v}</Button>)}
         </div>
       </div>
       <div className={`mt-4 grid gap-4 ${view === "split" ? "lg:grid-cols-2" : ""}`}>
         {view !== "preview" && <textarea ref={ta} value={note.raw_content} onChange={(e) => onChange({ raw_content: e.target.value })} className="mono min-h-[60vh] w-full resize-none rounded-xl bg-background/60 p-4 text-sm leading-6 outline-none focus:ring-2 focus:ring-interactive/30" spellCheck={false} />}
         {view !== "edit" && <div className="prose-note min-h-[60vh] overflow-y-auto rounded-xl border border-border p-5" dangerouslySetInnerHTML={{ __html: note.markdown_html }} />}
       </div>
-      <div className="fixed bottom-8 right-8 z-30 flex flex-col gap-2">
-        <button className="btn rounded-full bg-warn px-4 py-3 text-background shadow-lg" onClick={() => wrap(":::warning\n", "\n:::", "Careful here…", true)}><AlertTriangle className="h-4 w-4" />Warning Callout</button>
-        <button className="btn-break rounded-full px-4 py-3" onClick={() => wrap(":::takeaway\n", "\n:::", "The key insight…", true)}><Star className="h-4 w-4" />Key Takeaway</button>
+      <div className="mt-4 flex flex-wrap justify-end gap-2">
+        <Button variant="ghost" className="btn rounded-full bg-warn px-4 py-3 text-background shadow-lg" onClick={() => wrap(":::warning\n", "\n:::", "Careful here…", true)}><AlertTriangle className="h-4 w-4" />Warning Callout</Button>
+        <Button variant="ghost" className="btn-break rounded-full px-4 py-3" onClick={() => wrap(":::takeaway\n", "\n:::", "The key insight…", true)}><Star className="h-4 w-4" />Key Takeaway</Button>
       </div>
     </div>
   );

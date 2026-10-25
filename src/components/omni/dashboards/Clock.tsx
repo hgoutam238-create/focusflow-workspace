@@ -1,25 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Play, Square, Pause, RotateCcw } from "lucide-react";
+import { Play, Square, Pause, RotateCcw, Utensils, Gamepad2, Dumbbell, BedDouble } from "lucide-react";
 import { PageHeader } from "@/components/omni/Shell";
 import { useTimer } from "@/lib/timer";
 import { useData, projectById } from "@/lib/store";
 import { hms, pad } from "@/lib/format";
 
-export const Route = createFileRoute("/clock")({
-  head: () => ({
-    meta: [
-      { title: "Time & Clock Hub · OmniFocus Matrix" },
-      { name: "description", content: "Wall clock, Toggl-style live stopwatch and a free countdown timer." },
-      { property: "og:title", content: "Time & Clock Hub · OmniFocus Matrix" },
-      { property: "og:description", content: "Wall clock, live stopwatch and countdown timer." },
-    ],
-  }),
-  component: ClockPage,
-});
 
-function ClockPage() {
-  useTimer((s) => s.remaining);
+
+export function ClockPage() {
+  useTimer((s) => s.heartbeat);
   const now = new Date();
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const offset = -now.getTimezoneOffset() / 60;
@@ -27,9 +17,10 @@ function ClockPage() {
     <>
       <PageHeader eyebrow="Tab 02" title="Mechanical Time & Clock Hub" />
       <Stopwatch />
+      <QuickActivities />
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
         <div className="panel flex flex-col items-center justify-center py-14">
-          <div className="mono text-[7rem] font-bold leading-none tracking-tight">
+          <div className="mono flex flex-wrap items-baseline justify-center text-5xl font-bold leading-none sm:text-7xl lg:text-[7rem]">
             {pad(now.getHours())}<span className="text-muted-foreground">:</span>{pad(now.getMinutes())}
             <span className="ml-3 text-5xl text-interactive">{pad(now.getSeconds())}</span>
           </div>
@@ -47,7 +38,8 @@ function ClockPage() {
 
 function Stopwatch() {
   const { sw, swStart, swStop } = useTimer();
-  const projects = useData((s) => s.projects.filter((p) => !p.archived_status));
+  const allProjects = useData((s) => s.projects);
+  const projects = allProjects.filter((p) => !p.archived_status);
   const [title, setTitle] = useState("");
   const [pid, setPid] = useState<string>("");
   const proj = projectById(projects, sw.running ? sw.projectId : pid);
@@ -64,10 +56,23 @@ function Stopwatch() {
       </div>
       <div className="mono w-32 text-right text-2xl font-bold">{hms(sw.running && sw.startAt ? (Date.now() - sw.startAt) / 1000 : 0)}</div>
       {sw.running
-        ? <button onClick={swStop} className="btn-focus"><Square className="h-4 w-4" />Stop</button>
-        : <button onClick={() => { swStart(title, pid || null); setTitle(""); }} className="btn-blue"><Play className="h-4 w-4" />Start Tracking</button>}
+        ? <Button variant="ghost" onClick={swStop} className="btn-focus"><Square className="h-4 w-4" />Stop</Button>
+        : <Button variant="ghost" onClick={() => { swStart(title, pid || null); setTitle(""); }} className="btn-blue"><Play className="h-4 w-4" />Start Tracking</Button>}
     </div>
   );
+}
+
+function QuickActivities() {
+  const { quickStart, activity, activityStart, activityStop, heartbeat, pending } = useTimer();
+  const [title, setTitle] = useState("Gaming");
+  return <div className="mt-6">
+    <div className="label-xs mb-3">Quick routines</div>
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[
+      { title: "Eating Food", icon: Utensils, color: "text-warn" }, { title: "Gaming", icon: Gamepad2, color: "text-interactive" },
+      { title: "Exercise", icon: Dumbbell, color: "text-break" }, { title: "Power Nap", icon: BedDouble, color: "text-focus" },
+    ].map(({ title: name, icon: Icon, color }) => <Button key={name} variant="outline" disabled={!!pending} onClick={() => quickStart(name)} className="h-20 flex-col gap-2 bg-card"><Icon className={color} />{name}</Button>)}</div>
+    <div className="panel mt-4 flex flex-wrap items-center gap-3"><div className="label-xs">Activity count-up</div><input aria-label="Activity title" className="field min-w-32 flex-1" value={title} disabled={activity.running} onChange={(e) => setTitle(e.target.value)} /><div className="mono w-28 text-xl">{hms(activity.running && activity.startAt ? (heartbeat - activity.startAt) / 1000 : 0)}</div><Button variant="ghost" className={activity.running ? "btn-focus" : "btn-blue"} onClick={() => activity.running ? activityStop() : activityStart(title)}>{activity.running ? <Square /> : <Play />}{activity.running ? "Stop activity" : "Start activity"}</Button></div>
+  </div>;
 }
 
 function Countdown() {
@@ -88,9 +93,9 @@ function Countdown() {
         </div>
       )}
       <div className="mt-6 flex justify-center gap-2">
-        {cd.running ? <button onClick={cdPause} className="btn-ghost"><Pause className="h-4 w-4" />Pause</button>
-          : <button disabled={idle && !total} onClick={() => cdStart(total)} className="btn-blue"><Play className="h-4 w-4" />{idle ? "Start" : "Resume"}</button>}
-        <button onClick={cdReset} className="btn-ghost"><RotateCcw className="h-4 w-4" />Reset</button>
+        {cd.running ? <Button variant="ghost" onClick={cdPause} className="btn-ghost"><Pause className="h-4 w-4" />Pause</Button>
+          : <Button variant="ghost" disabled={idle && !total} onClick={() => cdStart(total)} className="btn-blue"><Play className="h-4 w-4" />{idle ? "Start" : "Resume"}</Button>}
+        <Button variant="ghost" onClick={cdReset} className="btn-ghost"><RotateCcw className="h-4 w-4" />Reset</Button>
       </div>
     </div>
   );
@@ -99,10 +104,10 @@ function Countdown() {
 function Dial({ v, set, max, label }: { v: number; set: (n: number) => void; max: number; label: string }) {
   return (
     <div className="flex flex-col items-center">
-      <button className="btn-icon" onClick={() => set((v + 1) % (max + 1))}>▲</button>
+      <Button variant="ghost" className="btn-icon" onClick={() => set((v + 1) % (max + 1))}>▲</Button>
       <input type="number" min={0} max={max} value={pad(v)} onChange={(e) => set(Math.min(max, Math.max(0, +e.target.value || 0)))}
         className="mono w-20 rounded-xl bg-background/60 py-2 text-center text-4xl font-bold outline-none focus:ring-2 focus:ring-interactive/40" />
-      <button className="btn-icon" onClick={() => set((v - 1 + max + 1) % (max + 1))}>▼</button>
+      <Button variant="ghost" className="btn-icon" onClick={() => set((v - 1 + max + 1) % (max + 1))}>▼</Button>
       <span className="label-xs mt-1">{label}</span>
     </div>
   )}

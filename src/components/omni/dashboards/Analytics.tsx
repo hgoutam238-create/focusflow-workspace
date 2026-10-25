@@ -1,26 +1,16 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
 import { useMemo } from "react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, BarChart, Bar, Legend } from "recharts";
 import { PageHeader } from "@/components/omni/Shell";
 import { useData, THOUGHT_MODES } from "@/lib/store";
 import { durMin, fmtHours } from "@/lib/format";
 
-export const Route = createFileRoute("/analytics")({
-  head: () => ({
-    meta: [
-      { title: "Analytics Dashboard · OmniFocus Matrix" },
-      { name: "description", content: "Focus yield, task velocity, distraction density and intensity curves." },
-      { property: "og:title", content: "Analytics Dashboard · OmniFocus Matrix" },
-      { property: "og:description", content: "Focus yield, task velocity, distraction density and intensity curves." },
-    ],
-  }),
-  component: AnalyticsPage,
-});
+
 
 const MODE_COLORS = ["var(--interactive)", "var(--warn)", "var(--chart-5)", "var(--break)"];
 const tip = { contentStyle: { background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12, color: "var(--foreground)" } };
 
-function AnalyticsPage() {
+export function AnalyticsPage() {
   const { timeLogs, tasks, notes, brainDump } = useData();
   const m = useMemo(() => {
     const now = new Date(); const sod = new Date(now); sod.setHours(0, 0, 0, 0);
