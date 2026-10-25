@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/omni/Shell";
 import { useTimer, type Mode } from "@/lib/timer";
 import { useData, uid, projectById } from "@/lib/store";
-import { AMBIENT_TRACKS, playAmbient, stopAmbient, setAmbientVolume, audioDb, fileToDataUrl, type BinauralAudio } from "@/lib/audio";
+import { AMBIENT_TRACKS, playAmbient, stopAmbient, setAmbientVolume, setTrackVolume, audioDb, fileToDataUrl, type BinauralAudio } from "@/lib/audio";
 import { ms } from "@/lib/format";
 
 
@@ -38,7 +38,7 @@ function TimerPanel() {
           <Button variant="ghost" key={m} onClick={() => t.setMode(m)} className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${t.mode === m ? "bg-elevated text-foreground" : "text-muted-foreground hover:text-foreground"}`}>{MODE_LABEL[m]}</Button>
         ))}
       </div>
-      <div className="relative mx-auto my-6 h-[300px] w-[300px]">
+      <div className="relative mx-auto my-6 aspect-square w-full max-w-[300px]">
         <svg viewBox="0 0 300 300" className="h-full w-full -rotate-90">
           <circle cx="150" cy="150" r={R} fill="none" stroke="var(--muted)" strokeWidth="10" />
           <circle cx="150" cy="150" r={R} fill="none" stroke={color} strokeWidth="10" strokeLinecap="round"
@@ -72,20 +72,21 @@ function TimerPanel() {
 
 function AudioMatrix() {
   const { settings, setSettings } = useData();
+  const [playing, setPlaying] = useState<Record<string, boolean>>({});
   const toggle = (id: string) => {
-    if (settings.ambientTrack === id) { stopAmbient(); setSettings({ ambientTrack: null }); }
-    else { playAmbient(id, settings.volume); setSettings({ ambientTrack: id }); }
+    if (playing[id]) stopAmbient(id);
+    else { playAmbient(id, settings.ambientMix[id] ?? 0.5); setAmbientVolume(settings.muted ? 0 : settings.volume); }
+    setPlaying((current) => ({ ...current, [id]: !current[id] }));
   };
-  useEffect(() => () => { /* keep playing across tabs */ }, []);
   return (
     <div className="panel">
-      <div className="mb-3 flex items-center justify-between"><div className="label-xs">Integrated Audio Matrix</div><Volume2 className="h-4 w-4 text-muted-foreground" /></div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="mb-3 flex items-center justify-between"><div className="label-xs">Integrated Audio Matrix</div><label className="flex items-center gap-2 text-xs"><Volume2 className="h-4 w-4" />Mute<Switch checked={settings.muted} onCheckedChange={(muted) => { setSettings({ muted }); setAmbientVolume(muted ? 0 : settings.volume); }} /></label></div>
+      <div className="grid grid-cols-2 gap-3">
         {AMBIENT_TRACKS.map((tr) => (
-          <Button variant="ghost" key={tr.id} onClick={() => toggle(tr.id)} className={settings.ambientTrack === tr.id ? "btn-blue" : "btn-ghost"}>{tr.label}</Button>
+          <div key={tr.id}><Button variant="ghost" onClick={() => toggle(tr.id)} aria-pressed={!!playing[tr.id]} className={`w-full ${playing[tr.id] ? "btn-blue" : "btn-ghost"}`}>{tr.label}</Button><input aria-label={`${tr.label} volume`} type="range" min={0} max={1} step={0.01} value={settings.ambientMix[tr.id] ?? 0.5} onChange={(e) => { const volume = +e.target.value; setSettings({ ambientMix: { ...settings.ambientMix, [tr.id]: volume } }); setTrackVolume(tr.id, volume); }} className="mt-2 w-full" /></div>
         ))}
       </div>
-      <input type="range" min={0} max={1} step={0.01} value={settings.volume} onChange={(e) => { setSettings({ volume: +e.target.value }); setAmbientVolume(+e.target.value); }} className="mt-4 w-full" />
+      <label className="mt-4 block text-xs text-muted-foreground">Master volume<input aria-label="Master volume" type="range" min={0} max={1} step={0.01} value={settings.volume} onChange={(e) => { setSettings({ volume: +e.target.value }); setAmbientVolume(settings.muted ? 0 : +e.target.value); }} className="mt-2 w-full" /></label>
     </div>
   );
 }
@@ -97,12 +98,13 @@ function BinauralMatrix() {
   const [files, setFiles] = useState<BinauralAudio[]>([]);
   const input = useRef<HTMLInputElement>(null);
   const refresh = () => audioDb.all().then(setFiles);
-  useEffect(() => { void refresh(); }, []);
+  useEffect(() => { void refresh().catch(() => toast.error("Could not load saved audio")); }, []);
   const onUpload = async (f?: File) => {
     if (!f) return;
     if (!/\.(mp3|wav)$/i.test(f.name)) { toast.error("Please upload an .mp3 or .wav file"); return; }
-    const rec = { id: uid(), file_name: f.name, data_url_string: await fileToDataUrl(f) };
-    await audioDb.put(rec); setSettings({ binauralId: rec.id }); void refresh(); toast.success("Binaural track saved offline");
+    try { const rec = { id: uid(), file_name: f.name, data_url_string: await fileToDataUrl(f) };
+      await audioDb.put(rec); setSettings({ binauralId: rec.id }); void refresh(); toast.success("Binaural track saved offline");
+    } catch { toast.error("Audio could not be saved. Check available device storage."); }
   };
   const active = mode !== "work" && running && settings.binauralAutoplay && settings.binauralId;
   return (
@@ -168,7 +170,7 @@ function DistractionShield() {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => { if (open) ref.current?.focus(); }, [open]);
+  useEffect(() => { useTimer.setState({ shieldOpen: open }); if (open) ref.current?.focus(); }, [open]);
   const taskTitle = tasks.find((t) => t.id === activeTaskId)?.title ?? activeTargetTitle ?? "No active target";
   const save = () => {
     if (text.trim()) add("brainDump", { id: uid(), timestamp: new Date().toISOString(), raw_thought_text: text.trim(), core_category: "Uncategorized", task_title: taskTitle });
@@ -181,9 +183,9 @@ function DistractionShield() {
         <div className="text-sm">Distractions tracking this session: <span className="mono font-bold text-focus">{sessionDistractions}</span></div>
       </div>
       <Button variant="ghost" onClick={() => { addDistraction(); setOpen(true); }}
-        className="w-full rounded-2xl bg-focus px-6 py-10 text-xl font-extrabold tracking-wide text-primary-foreground transition hover:brightness-110 active:scale-[0.99]"
+        className="h-auto min-h-28 w-full whitespace-normal rounded-2xl bg-focus px-6 py-8 text-xl font-extrabold text-primary-foreground transition hover:!bg-focus hover:brightness-110 active:scale-[0.99]"
         style={{ boxShadow: "var(--glow-focus)" }}>
-        REPORT DISTRACTION / MY MIND WANDERED
+        REPORT DISTRACTION
       </Button>
       <div className={`grid transition-all duration-300 ${open ? "mt-4 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
         <div className="overflow-hidden">

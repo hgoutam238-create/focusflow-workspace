@@ -4,6 +4,7 @@ import { Plus, Bold, Italic, Heading1, Heading2, Heading3, Code, FileCode, List,
 import { PageHeader } from "@/components/omni/Shell";
 import { useData, uid, THOUGHT_MODES, projectById, type ThoughtMode, type Note } from "@/lib/store";
 import { renderMarkdown } from "@/lib/markdown";
+import { toast } from "sonner";
 
 
 
@@ -26,6 +27,7 @@ export function NotesPage() {
   const note = notes.find((n) => n.id === sel);
 
   const create = () => {
+    if (!pf || !mf) { toast.error("Select a project and thought mode before creating a note"); return; }
     const now = new Date().toISOString(); const id = uid();
     const raw = "# New note\n\nStart writing…";
     add("notes", { id, project_id: pf || projects[0]?.id || "", title: "Untitled note", raw_content: raw, markdown_html: renderMarkdown(raw), created_at: now, updated_at: now, category_tag: (mf as ThoughtMode) || "Fleeting Thought", absolute_privacy_flag: false });
@@ -34,7 +36,7 @@ export function NotesPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Tab 05" title="Power-Note Lab"><Button variant="ghost" className="btn-blue" onClick={create}><Plus className="h-4 w-4" />New note</Button></PageHeader>
+      <PageHeader eyebrow="Tab 05" title="Power-Note Lab"><Button variant="ghost" className="btn-blue" onClick={create} disabled={!pf || !mf}><Plus className="h-4 w-4" />New note</Button></PageHeader>
       <div className="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
         <div className="space-y-3">
           <div className="relative"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><input className="field pl-9" placeholder="Search notes" value={q} onChange={(e) => setQ(e.target.value)} /></div>
@@ -47,7 +49,7 @@ export function NotesPage() {
               const p = projectById(projects, n.project_id);
               const hidden = n.absolute_privacy_flag && !revealed[n.id];
               return (
-                <Button variant="ghost" key={n.id} onClick={() => setSel(n.id)} className={`w-full rounded-xl border p-3 text-left transition ${sel === n.id ? "border-interactive bg-elevated" : "border-border bg-card hover:border-interactive/40"}`}>
+                <Button variant="ghost" key={n.id} onClick={() => setSel(n.id)} className={`h-auto w-full flex-col items-stretch whitespace-normal rounded-xl border p-3 text-left transition ${sel === n.id ? "border-interactive bg-elevated" : "border-border bg-card hover:border-interactive/40"}`}>
                   <div className="flex flex-wrap gap-1.5">
                     <span className={`chip ${MODE_STYLE[n.category_tag]}`}>[{n.category_tag}]</span>
                     {p && <span className="chip" style={{ background: `color-mix(in oklab, ${p.color_hex} 18%, transparent)`, color: p.color_hex }}>{p.name}</span>}
@@ -117,7 +119,7 @@ function Editor({ note, view, setView, onChange, onDelete, revealed, reveal }: {
         {view !== "preview" && <textarea ref={ta} value={note.raw_content} onChange={(e) => onChange({ raw_content: e.target.value })} className="mono min-h-[60vh] w-full resize-none rounded-xl bg-background/60 p-4 text-sm leading-6 outline-none focus:ring-2 focus:ring-interactive/30" spellCheck={false} />}
         {view !== "edit" && <div className="prose-note min-h-[60vh] overflow-y-auto rounded-xl border border-border p-5" dangerouslySetInnerHTML={{ __html: note.markdown_html }} />}
       </div>
-      <div className="fixed bottom-8 right-8 z-30 flex flex-col gap-2">
+      <div className="mt-4 flex flex-wrap justify-end gap-2">
         <Button variant="ghost" className="btn rounded-full bg-warn px-4 py-3 text-background shadow-lg" onClick={() => wrap(":::warning\n", "\n:::", "Careful here…", true)}><AlertTriangle className="h-4 w-4" />Warning Callout</Button>
         <Button variant="ghost" className="btn-break rounded-full px-4 py-3" onClick={() => wrap(":::takeaway\n", "\n:::", "The key insight…", true)}><Star className="h-4 w-4" />Key Takeaway</Button>
       </div>

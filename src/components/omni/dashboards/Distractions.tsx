@@ -7,7 +7,7 @@ import { useData, DISTRACTION_CATEGORIES } from "@/lib/store";
 
 
 const CAT_STYLE: Record<string, string> = {
-  "Digital Temptation": "text-interactive", "Internal Anxiety": "text-focus", "External Noise": "text-warn", "Random Ideas": "text-break", Uncategorized: "text-muted-foreground",
+  "Digital Temptation": "text-interactive", "Internal Anxiety": "text-focus", "External Noise": "text-warn", "Random Epiphanies": "text-break", Uncategorized: "text-muted-foreground",
 };
 
 export function DistractionsPage() {
