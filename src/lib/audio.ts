@@ -54,7 +54,7 @@ export function playAmbient(track: string, volume: number) {
     const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 900; lp.connect(out);
     const play = () => {
       const t = c.currentTime;
-      chords[i++ % 4].forEach((f) => {
+      (chords[i++ % 4] ?? []).forEach((f) => {
         const o = c.createOscillator(); const g = c.createGain(); o.type = "triangle"; o.frequency.value = f / 2;
         g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.08, t + 0.3); g.gain.exponentialRampToValueAtTime(0.001, t + 2.6);
         o.connect(g).connect(lp); o.start(t); o.stop(t + 2.7);

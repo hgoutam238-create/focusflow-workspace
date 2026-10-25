@@ -39,7 +39,7 @@ function CalendarPage() {
 
   const openSlot = (i: number) => { setSlot(i); setForm({ title: "", project: projects[0]?.id ?? "", start: toHM(i * 30), end: toHM(Math.min(1439, i * 30 + 30)) }); };
   const saveManual = () => {
-    const [sh, sm] = form.start.split(":").map(Number); const [eh, em] = form.end.split(":").map(Number);
+    const [sh = 0, sm = 0] = form.start.split(":").map(Number); const [eh = 0, em = 0] = form.end.split(":").map(Number);
     const s = dayStart + (sh * 60 + sm) * 60000, e = dayStart + (eh * 60 + em) * 60000;
     if (!form.title.trim() || e <= s) { toast.error("Add a title and an end time after the start"); return; }
     add("timeLogs", { id: uid(), task_id: null, project_id: form.project || null, title: form.title.trim(), category_string: "Manual", start_time: new Date(s).toISOString(), end_time: new Date(e).toISOString(), method_used: "Manual", total_distractions: 0, intensity_score: 3, final_reflection_text: "Retroactively logged", goal_achieved: null });

@@ -34,7 +34,7 @@ function AnalyticsPage() {
     const bands: Record<number, number[]> = {};
     curve.forEach((c) => { const b = Math.floor(c.minutes / 15) * 15; (bands[b] ||= []).push(c.intensity); });
     const avgCurve = Object.entries(bands).map(([b, v]) => ({ minutes: +b, intensity: +(v.reduce((x, y) => x + y, 0) / v.length).toFixed(2) })).sort((a, b) => a.minutes - b.minutes);
-    const collapse = avgCurve.find((p, i) => i > 0 && p.intensity < avgCurve[0].intensity - 1);
+    const collapse = avgCurve.find((p, i) => i > 0 && p.intensity < (avgCurve[0]?.intensity ?? 0) - 1);
     const days = Array.from({ length: 14 }, (_, i) => {
       const d = new Date(sod); d.setDate(sod.getDate() - 13 + i); const e = new Date(d); e.setDate(d.getDate() + 1);
       const ls = timeLogs.filter((l) => new Date(l.start_time) >= d && new Date(l.start_time) < e);

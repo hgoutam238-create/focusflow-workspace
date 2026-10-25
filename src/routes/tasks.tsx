@@ -24,7 +24,7 @@ function TasksPage() {
   const { projects, tasks, add, update } = useData();
   const [filter, setFilter] = useState<string | null>(null);
   const [showDone, setShowDone] = useState(false);
-  const [newProj, setNewProj] = useState(""); const [color, setColor] = useState(COLORS[0]);
+  const [newProj, setNewProj] = useState(""); const [color, setColor] = useState<string>(COLORS[0]!);
   const active = projects.filter((p) => !p.archived_status);
   const visible = tasks.filter((t) => (!filter || t.project_id === filter) && (showDone || !t.completed_boolean));
 
@@ -93,7 +93,7 @@ function TaskCard({ task }: { task: Task }) {
   const navigate = useNavigate();
   const p = projectById(projects, task.project_id);
   const idx = BUCKETS.indexOf(task.daily_grouping_bucket);
-  const move = (d: number) => update("tasks", task.id, { daily_grouping_bucket: BUCKETS[Math.min(4, Math.max(0, idx + d))] });
+  const move = (d: number) => update("tasks", task.id, { daily_grouping_bucket: BUCKETS[Math.min(4, Math.max(0, idx + d))]! });
   return (
     <div draggable onDragStart={(e) => e.dataTransfer.setData("text/task", task.id)}
       className={`cursor-grab rounded-xl border border-border bg-card p-3 transition hover:border-interactive/40 ${task.completed_boolean ? "opacity-50" : ""}`}>
