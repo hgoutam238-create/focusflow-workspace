@@ -1,26 +1,16 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Search, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/omni/Shell";
 import { useData, DISTRACTION_CATEGORIES } from "@/lib/store";
 
-export const Route = createFileRoute("/distractions")({
-  head: () => ({
-    meta: [
-      { title: "Distraction Journal · OmniFocus Matrix" },
-      { name: "description", content: "Searchable feed of every intrusive thought captured mid-session." },
-      { property: "og:title", content: "Distraction Journal · OmniFocus Matrix" },
-      { property: "og:description", content: "Searchable feed of every intrusive thought captured mid-session." },
-    ],
-  }),
-  component: DistractionsPage,
-});
+
 
 const CAT_STYLE: Record<string, string> = {
   "Digital Temptation": "text-interactive", "Internal Anxiety": "text-focus", "External Noise": "text-warn", "Random Ideas": "text-break", Uncategorized: "text-muted-foreground",
 };
 
-function DistractionsPage() {
+export function DistractionsPage() {
   const { brainDump, update, remove } = useData();
   const [q, setQ] = useState(""); const [cat, setCat] = useState("");
   const list = brainDump.filter((d) => (!cat || d.core_category === cat) && (!q || `${d.raw_thought_text} ${d.task_title} ${d.core_category}`.toLowerCase().includes(q.toLowerCase())));
@@ -42,7 +32,7 @@ function DistractionsPage() {
           <div key={d.id} className="panel flex flex-col">
             <div className="flex items-center justify-between">
               <span className="mono text-xs text-muted-foreground">{new Date(d.timestamp).toLocaleString()}</span>
-              <button className="btn-icon" onClick={() => remove("brainDump", d.id)}><Trash2 className="h-3.5 w-3.5" /></button>
+              <Button variant="ghost" className="btn-icon" onClick={() => remove("brainDump", d.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
             </div>
             <p className="mt-3 flex-1 text-lg font-medium leading-snug">“{d.raw_thought_text}”</p>
             <div className="mt-4 text-xs text-muted-foreground">While working on: <span className="text-foreground">{d.task_title}</span></div>

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Play, Square, Pause, RotateCcw } from "lucide-react";
 import { PageHeader } from "@/components/omni/Shell";
@@ -6,19 +6,9 @@ import { useTimer } from "@/lib/timer";
 import { useData, projectById } from "@/lib/store";
 import { hms, pad } from "@/lib/format";
 
-export const Route = createFileRoute("/clock")({
-  head: () => ({
-    meta: [
-      { title: "Time & Clock Hub · OmniFocus Matrix" },
-      { name: "description", content: "Wall clock, Toggl-style live stopwatch and a free countdown timer." },
-      { property: "og:title", content: "Time & Clock Hub · OmniFocus Matrix" },
-      { property: "og:description", content: "Wall clock, live stopwatch and countdown timer." },
-    ],
-  }),
-  component: ClockPage,
-});
 
-function ClockPage() {
+
+export function ClockPage() {
   useTimer((s) => s.remaining);
   const now = new Date();
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -64,8 +54,8 @@ function Stopwatch() {
       </div>
       <div className="mono w-32 text-right text-2xl font-bold">{hms(sw.running && sw.startAt ? (Date.now() - sw.startAt) / 1000 : 0)}</div>
       {sw.running
-        ? <button onClick={swStop} className="btn-focus"><Square className="h-4 w-4" />Stop</button>
-        : <button onClick={() => { swStart(title, pid || null); setTitle(""); }} className="btn-blue"><Play className="h-4 w-4" />Start Tracking</button>}
+        ? <Button variant="ghost" onClick={swStop} className="btn-focus"><Square className="h-4 w-4" />Stop</Button>
+        : <Button variant="ghost" onClick={() => { swStart(title, pid || null); setTitle(""); }} className="btn-blue"><Play className="h-4 w-4" />Start Tracking</Button>}
     </div>
   );
 }
@@ -88,9 +78,9 @@ function Countdown() {
         </div>
       )}
       <div className="mt-6 flex justify-center gap-2">
-        {cd.running ? <button onClick={cdPause} className="btn-ghost"><Pause className="h-4 w-4" />Pause</button>
-          : <button disabled={idle && !total} onClick={() => cdStart(total)} className="btn-blue"><Play className="h-4 w-4" />{idle ? "Start" : "Resume"}</button>}
-        <button onClick={cdReset} className="btn-ghost"><RotateCcw className="h-4 w-4" />Reset</button>
+        {cd.running ? <Button variant="ghost" onClick={cdPause} className="btn-ghost"><Pause className="h-4 w-4" />Pause</Button>
+          : <Button variant="ghost" disabled={idle && !total} onClick={() => cdStart(total)} className="btn-blue"><Play className="h-4 w-4" />{idle ? "Start" : "Resume"}</Button>}
+        <Button variant="ghost" onClick={cdReset} className="btn-ghost"><RotateCcw className="h-4 w-4" />Reset</Button>
       </div>
     </div>
   );
@@ -99,10 +89,10 @@ function Countdown() {
 function Dial({ v, set, max, label }: { v: number; set: (n: number) => void; max: number; label: string }) {
   return (
     <div className="flex flex-col items-center">
-      <button className="btn-icon" onClick={() => set((v + 1) % (max + 1))}>▲</button>
+      <Button variant="ghost" className="btn-icon" onClick={() => set((v + 1) % (max + 1))}>▲</Button>
       <input type="number" min={0} max={max} value={pad(v)} onChange={(e) => set(Math.min(max, Math.max(0, +e.target.value || 0)))}
         className="mono w-20 rounded-xl bg-background/60 py-2 text-center text-4xl font-bold outline-none focus:ring-2 focus:ring-interactive/40" />
-      <button className="btn-icon" onClick={() => set((v - 1 + max + 1) % (max + 1))}>▼</button>
+      <Button variant="ghost" className="btn-icon" onClick={() => set((v - 1 + max + 1) % (max + 1))}>▼</Button>
       <span className="label-xs mt-1">{label}</span>
     </div>
   )}

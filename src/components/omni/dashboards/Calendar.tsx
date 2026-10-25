@@ -1,4 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useTabs } from "@/lib/tabs";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Timer, Watch, PenLine, Target } from "lucide-react";
 import { toast } from "sonner";
@@ -8,26 +9,16 @@ import { useData, uid, projectById, type Method } from "@/lib/store";
 import { useTimer } from "@/lib/timer";
 import { pad } from "@/lib/format";
 
-export const Route = createFileRoute("/calendar")({
-  head: () => ({
-    meta: [
-      { title: "Timeline Calendar · OmniFocus Matrix" },
-      { name: "description", content: "24-hour grid of tracked sessions with click-to-track planning." },
-      { property: "og:title", content: "Timeline Calendar · OmniFocus Matrix" },
-      { property: "og:description", content: "24-hour grid of tracked sessions with click-to-track planning." },
-    ],
-  }),
-  component: CalendarPage,
-});
+
 
 const ROW = 30; // px per 30 minutes
 const ICON: Record<Method, typeof Timer> = { Pomodoro: Timer, Stopwatch: Watch, Manual: PenLine };
 const toHM = (min: number) => `${pad(min / 60)}:${pad(min % 60)}`;
 
-function CalendarPage() {
+export function CalendarPage() {
   const { timeLogs, projects, add } = useData();
   const setTarget = useTimer((s) => s.setTarget);
-  const navigate = useNavigate();
+  const setTab = useTabs((s) => s.setTab);
   const [day, setDay] = useState(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; });
   const [slot, setSlot] = useState<number | null>(null);
   const [form, setForm] = useState({ title: "", project: "", start: "09:00", end: "09:30" });
@@ -47,17 +38,17 @@ function CalendarPage() {
   };
   const startLive = () => {
     setTarget(form.title.trim() || `Timeline block ${form.start}`);
-    setSlot(null); void navigate({ to: "/" });
+    setSlot(null); setTab("focus");
   };
 
   return (
     <>
       <PageHeader eyebrow="Tab 03" title="Interactive Timeline">
         <div className="flex items-center gap-2">
-          <button className="btn-ghost" onClick={() => shift(-1)}><ChevronLeft className="h-4 w-4" /></button>
+          <Button variant="ghost" className="btn-ghost" onClick={() => shift(-1)}><ChevronLeft className="h-4 w-4" /></Button>
           <div className="min-w-48 text-center font-semibold">{day.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}</div>
-          <button className="btn-ghost" onClick={() => shift(1)}><ChevronRight className="h-4 w-4" /></button>
-          <button className="btn-blue" onClick={() => setDay(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })}>Today</button>
+          <Button variant="ghost" className="btn-ghost" onClick={() => shift(1)}><ChevronRight className="h-4 w-4" /></Button>
+          <Button variant="ghost" className="btn-blue" onClick={() => setDay(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })}>Today</Button>
         </div>
       </PageHeader>
       <div className="panel !p-0 overflow-hidden">
@@ -97,11 +88,11 @@ function CalendarPage() {
               <input type="time" className="field" value={form.start} onChange={(e) => setForm({ ...form, start: e.target.value })} />
               <input type="time" className="field" value={form.end} onChange={(e) => setForm({ ...form, end: e.target.value })} />
             </div>
-            <button className="btn-blue mt-3 w-full" onClick={saveManual}><PenLine className="h-4 w-4" />Log block</button>
+            <Button variant="ghost" className="btn-blue mt-3 w-full" onClick={saveManual}><PenLine className="h-4 w-4" />Log block</Button>
           </div>
           <div className="rounded-xl border border-border p-4">
             <div className="label-xs mb-3">Option 2 · Initiate Live Focus Session</div>
-            <button className="btn-focus w-full" onClick={startLive}><Target className="h-4 w-4" />Load as focus target</button>
+            <Button variant="ghost" className="btn-focus w-full" onClick={startLive}><Target className="h-4 w-4" />Load as focus target</Button>
           </div>
         </DialogContent>
       </Dialog>
