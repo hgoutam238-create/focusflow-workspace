@@ -1,20 +1,22 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { workspaceStorage } from "./local-storage";
 
-export type Priority = "Low" | "Medium" | "High";
+export type Priority = "Low" | "Medium" | "High" | "Urgent Critical";
 export type Bucket = "Inbox" | "Today" | "Tomorrow" | "This Week" | "Backlog";
-export const BUCKETS: Bucket[] = ["Inbox", "Today", "Tomorrow", "This Week", "Backlog"];
-export type Method = "Pomodoro" | "Stopwatch" | "Manual";
+export const BUCKETS: Bucket[] = ["Inbox", "Today", "Tomorrow", "This Week"];
+export const PRIORITY_RANK: Record<Priority, number> = { Low: 1, Medium: 2, High: 3, "Urgent Critical": 4 };
+export type Method = "Pomodoro" | "Stopwatch" | "Manual" | "QuickRoutine";
 export type ThoughtMode = "Study/Theory" | "Fleeting Thought" | "Deep Reflection" | "Action Plan";
 export const THOUGHT_MODES: ThoughtMode[] = ["Study/Theory", "Fleeting Thought", "Deep Reflection", "Action Plan"];
-export const DISTRACTION_CATEGORIES = ["Uncategorized", "Digital Temptation", "Internal Anxiety", "External Noise", "Random Ideas"];
+export const DISTRACTION_CATEGORIES = ["Uncategorized", "Digital Temptation", "Internal Anxiety", "External Noise", "Random Epiphanies"];
 
 export interface Project { id: string; name: string; color_hex: string; description: string; archived_status: boolean }
 export interface Task {
   id: string; project_id: string; title: string; notes: string; priority_level: Priority; due_date: string;
   completed_boolean: boolean; estimated_pomodoros: number; completed_pomodoros: number; daily_grouping_bucket: Bucket;
 }
-export interface Habit { id: string; title: string; frequency_days: number[]; streak_count: number; current_year_history_map: Record<string, boolean> }
+export interface Habit { id: string; title: string; frequency_days: number[]; streak_count: number; current_year_history_map: Record<string, boolean>; reminder_time?: string }
 export interface TimeLog {
   id: string; task_id: string | null; project_id: string | null; title: string; category_string: string;
   start_time: string; end_time: string; method_used: Method; total_distractions: number; intensity_score: number;
@@ -31,7 +33,7 @@ export interface Collections {
   projects: Project[]; tasks: Task[]; habits: Habit[]; timeLogs: TimeLog[];
   brainDump: Distraction[]; reminders: Reminder[]; notes: Note[];
 }
-export interface Settings { ambientTrack: string | null; volume: number; binauralAutoplay: boolean; binauralId: string | null }
+export interface Settings { ambientTrack: string | null; volume: number; binauralAutoplay: boolean; binauralId: string | null; ambientMix: Record<string, number>; muted: boolean; studyGoalHours: number }
 
 interface State extends Collections {
   settings: Settings;
@@ -59,14 +61,22 @@ export const useData = create<State>()(
   persist(
     (set) => ({
       projects: SEED_PROJECTS, tasks: SEED_TASKS, habits: [], timeLogs: [], brainDump: [], reminders: [], notes: [],
-      settings: { ambientTrack: null, volume: 0.5, binauralAutoplay: true, binauralId: null },
+      settings: { ambientTrack: null, volume: 0.5, binauralAutoplay: true, binauralId: null, ambientMix: {}, muted: false, studyGoalHours: 4 },
       add: (k, item) => set((s) => ({ [k]: [item, ...(s[k] as unknown[])] }) as Partial<State>),
       update: (k, id, patch) =>
         set((s) => ({ [k]: (s[k] as { id: string }[]).map((x) => (x.id === id ? { ...x, ...patch } : x)) }) as Partial<State>),
       remove: (k, id) => set((s) => ({ [k]: (s[k] as { id: string }[]).filter((x) => x.id !== id) }) as Partial<State>),
       setSettings: (p) => set((s) => ({ settings: { ...s.settings, ...p } })),
     }),
-    { name: "omnifocus-matrix-v1", storage: createJSONStorage(() => localStorage) },
+    { name: "omnifocus-matrix-v1", storage: createJSONStorage(() => workspaceStorage),
+      merge: (persisted, current) => {
+        const saved = persisted as Partial<State> | undefined;
+        return { ...current, ...saved, settings: { ...current.settings, ...saved?.settings },
+          tasks: (saved?.tasks ?? current.tasks).map((task) => ({ ...task, daily_grouping_bucket: task.daily_grouping_bucket === "Backlog" ? "Inbox" : task.daily_grouping_bucket })),
+          brainDump: (saved?.brainDump ?? current.brainDump).map((entry) => ({ ...entry, core_category: entry.core_category === "Random Ideas" ? "Random Epiphanies" : entry.core_category })),
+        };
+      },
+    },
   ),
 );
 
