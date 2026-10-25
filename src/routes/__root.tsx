@@ -7,6 +7,8 @@ import { useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { Shell } from "@/components/omni/Shell";
 import { Engine } from "@/components/omni/Engine";
+import { initializeOffline } from "@/lib/pwa";
+import { initializeBackups } from "@/lib/backup";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -55,6 +57,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
@@ -78,6 +81,13 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(() => {
+    void initializeOffline();
+    let cleanup: (() => void) | undefined;
+    let cancelled = false;
+    void initializeBackups().then((unsubscribe) => { if (cancelled) unsubscribe(); else cleanup = unsubscribe; });
+    return () => { cancelled = true; cleanup?.(); };
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       {/* Local-only data lives in browser storage, so the workspace renders client-side. */}

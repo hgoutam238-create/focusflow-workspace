@@ -1,21 +1,26 @@
-import { Link } from "@tanstack/react-router";
-import { Target, Clock, CalendarRange, KanbanSquare, NotebookPen, BrainCircuit, BarChart3 } from "lucide-react";
+import { Target, Clock, CalendarRange, KanbanSquare, NotebookPen, BrainCircuit, BarChart3, FolderSync, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useTabs, type TabId } from "@/lib/tabs";
+import { useBackup, linkBackupFolder, downloadBackup } from "@/lib/backup";
+import { toast } from "sonner";
 import type { ReactNode } from "react";
 import { useTimer } from "@/lib/timer";
 import { ms, hms } from "@/lib/format";
 
 const NAV = [
-  { to: "/", label: "Focus Command", icon: Target },
-  { to: "/clock", label: "Time & Clock", icon: Clock },
-  { to: "/calendar", label: "Timeline", icon: CalendarRange },
-  { to: "/tasks", label: "Task Manager", icon: KanbanSquare },
-  { to: "/notes", label: "Power-Note Lab", icon: NotebookPen },
-  { to: "/distractions", label: "Brain Dump", icon: BrainCircuit },
-  { to: "/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "focus", label: "Focus Command", icon: Target },
+  { to: "clock", label: "Time & Clock", icon: Clock },
+  { to: "calendar", label: "Timeline", icon: CalendarRange },
+  { to: "tasks", label: "Task Manager", icon: KanbanSquare },
+  { to: "notes", label: "Power-Note Lab", icon: NotebookPen },
+  { to: "distractions", label: "Brain Dump", icon: BrainCircuit },
+  { to: "analytics", label: "Analytics", icon: BarChart3 },
 ] as const;
 
 export function Shell({ children }: { children: ReactNode }) {
   const { running, remaining, mode, sw } = useTimer();
+  const { activeTab, setTab } = useTabs();
+  const backup = useBackup();
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar px-3 py-5">
@@ -26,32 +31,33 @@ export function Shell({ children }: { children: ReactNode }) {
           </div>
           <div>
             <div className="text-sm font-extrabold tracking-tight">OmniFocus</div>
-            <div className="label-xs">Matrix</div>
+            <div className="label-xs">Matrix Engine</div>
           </div>
         </div>
         <nav className="flex flex-col gap-1">
           {NAV.map(({ to, label, icon: Icon }) => (
-            <Link key={to} to={to} activeOptions={{ exact: to === "/" }}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition hover:bg-sidebar-accent hover:text-sidebar-foreground"
-              activeProps={{ className: "!bg-sidebar-accent !text-sidebar-accent-foreground" }}>
+            <Button variant="ghost" key={to} onClick={() => setTab(to as TabId)} aria-pressed={activeTab === to}
+              className={`h-auto justify-start gap-3 px-3 py-2.5 text-sm ${activeTab === to ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/70"}`}>
               <Icon className="h-4 w-4" />{label}
-            </Link>
+            </Button>
           ))}
         </nav>
         <div className="mt-auto space-y-2">
           {running && (
-            <Link to="/" className="panel-tight block">
+            <Button variant="ghost" onClick={() => setTab("focus")} className="panel-tight h-auto w-full flex-col items-start">
               <div className="label-xs">{mode === "work" ? "Focusing" : "On break"}</div>
               <div className={`mono text-xl font-bold ${mode === "work" ? "text-focus" : "text-break"}`}>{ms(remaining)}</div>
-            </Link>
+            </Button>
           )}
           {sw.running && sw.startAt && (
-            <Link to="/clock" className="panel-tight block">
+            <Button variant="ghost" onClick={() => setTab("clock")} className="panel-tight h-auto w-full flex-col items-start">
               <div className="label-xs">Tracking</div>
               <SwLive startAt={sw.startAt} />
-            </Link>
+            </Button>
           )}
-          <div className="px-2 text-[11px] text-muted-foreground">All data stored locally on this device.</div>
+          <Button variant="ghost" className="w-full justify-start text-xs" onClick={() => linkBackupFolder().catch((error: Error) => { if (error.name !== "AbortError") toast.error(error.message); })}><FolderSync />Link Backup Folder</Button>
+          <div className="px-2 text-[10px] text-muted-foreground break-words">{backup.folder && `${backup.folder} · `}{backup.status}</div>
+          <Button variant="ghost" className="w-full justify-start text-xs" onClick={() => downloadBackup().catch(() => toast.error("Could not create backup"))}><Download />Download Backup</Button>
         </div>
       </aside>
       <main className="min-w-0 flex-1 p-8">{children}</main>
