@@ -1,8 +1,7 @@
 // Locally synthesized ambient tracks (Web Audio) + IndexedDB storage for custom binaural audio.
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
-let sources: AudioScheduledSourceNode[] = [];
-let timers: number[] = [];
+const mixes = new Map<string, { gain: GainNode; sources: AudioScheduledSourceNode[]; timers: number[] }>();
 
 function getCtx() {
   if (!ctx) { ctx = new AudioContext(); master = ctx.createGain(); master.connect(ctx.destination); }
@@ -22,16 +21,24 @@ export const AMBIENT_TRACKS = [
   { id: "lofi", label: "Lofi Beats" },
 ];
 
-export function stopAmbient() {
-  sources.forEach((s) => { try { s.stop(); } catch { /* noop */ } });
-  timers.forEach((t) => clearInterval(t));
-  sources = []; timers = [];
+export function stopAmbient(track?: string) {
+  for (const [id, mix] of mixes) {
+    if (track && track !== id) continue;
+    mix.sources.forEach((s) => { try { s.stop(); } catch { /* noop */ } });
+    mix.timers.forEach((t) => clearInterval(t));
+    mix.gain.disconnect(); mixes.delete(id);
+  }
 }
 export function setAmbientVolume(v: number) { if (master) master.gain.value = v; }
+export function setTrackVolume(track: string, volume: number) { const mix = mixes.get(track); if (mix) mix.gain.gain.value = volume; }
 
 export function playAmbient(track: string, volume: number) {
-  stopAmbient();
-  const c = getCtx(); void c.resume(); const out = master!; out.gain.value = volume;
+  stopAmbient(track);
+  const c = getCtx(); void c.resume();
+  if (!master) return;
+  const out = c.createGain(); out.gain.value = volume; out.connect(master);
+  const sources: AudioScheduledSourceNode[] = [], timers: number[] = [];
+  mixes.set(track, { gain: out, sources, timers });
   if (track === "white") { const n = noise(c, false); n.connect(out); n.start(); sources.push(n); }
   if (track === "rain") {
     const n = noise(c, false); const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2200;
@@ -91,12 +98,18 @@ function db(): Promise<IDBDatabase> {
 }
 async function tx<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRequest<T>): Promise<T> {
   const d = await db();
-  return new Promise((res, rej) => { const r = fn(d.transaction("CustomBinauralAudio", mode).objectStore("CustomBinauralAudio")); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  return new Promise((res, rej) => {
+    const transaction = d.transaction("CustomBinauralAudio", mode);
+    const r = fn(transaction.objectStore("CustomBinauralAudio"));
+    transaction.oncomplete = () => { res(r.result); d.close(); };
+    transaction.onerror = () => { rej(transaction.error); d.close(); };
+  });
 }
+function fallbackAudio(): BinauralAudio[] { return JSON.parse(localStorage.getItem("omni-audio-fallback") ?? "[]") as BinauralAudio[]; }
 export const audioDb = {
-  all: () => tx<BinauralAudio[]>("readonly", (s) => s.getAll() as IDBRequest<BinauralAudio[]>),
-  get: (id: string) => tx<BinauralAudio | undefined>("readonly", (s) => s.get(id) as IDBRequest<BinauralAudio | undefined>),
-  put: (a: BinauralAudio) => tx("readwrite", (s) => s.put(a)),
-  del: (id: string) => tx("readwrite", (s) => s.delete(id)),
+  all: async () => { try { return [...await tx<BinauralAudio[]>("readonly", (s) => s.getAll()), ...fallbackAudio()]; } catch { return fallbackAudio(); } },
+  get: async (id: string) => { try { return await tx<BinauralAudio | undefined>("readonly", (s) => s.get(id)) ?? fallbackAudio().find((a) => a.id === id); } catch { return fallbackAudio().find((a) => a.id === id); } },
+  put: async (a: BinauralAudio) => { try { await tx("readwrite", (s) => s.put(a)); } catch { localStorage.setItem("omni-audio-fallback", JSON.stringify([...fallbackAudio().filter((f) => f.id !== a.id), a])); } },
+  del: async (id: string) => { try { await tx("readwrite", (s) => s.delete(id)); } catch { /* remove fallback below */ } localStorage.setItem("omni-audio-fallback", JSON.stringify(fallbackAudio().filter((a) => a.id !== id))); },
 };
 export const fileToDataUrl = (f: File) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(f); });

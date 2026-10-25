@@ -53,9 +53,9 @@
 
 :root {
   --radius: 0.875rem;
-  --background: oklch(0.155 0.022 266);
+  --background: #0B0F19;
   --foreground: oklch(0.97 0.005 260);
-  --card: oklch(0.215 0.03 268);
+  --card: #151B2C;
   --card-foreground: oklch(0.97 0.005 260);
   --elevated: oklch(0.255 0.032 268);
   --popover: oklch(0.215 0.03 268);
@@ -70,10 +70,10 @@
   --accent-foreground: oklch(0.97 0.005 260);
   --destructive: oklch(0.67 0.21 18);
   --destructive-foreground: oklch(0.99 0 0);
-  --focus: oklch(0.67 0.21 18);
-  --break: oklch(0.7 0.15 163);
-  --interactive: oklch(0.62 0.19 260);
-  --warn: oklch(0.8 0.15 75);
+  --focus: #FF4A5A;
+  --break: #10B981;
+  --interactive: #3B82F6;
+  --warn: #F59E0B;
   --border: oklch(1 0 0 / 8%);
   --input: oklch(1 0 0 / 10%);
   --ring: oklch(0.62 0.19 260);
@@ -104,10 +104,20 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
+  * { letter-spacing: 0 !important; }
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-thumb { background: var(--color-accent); border-radius: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
   input[type="range"] { accent-color: var(--color-interactive); }
+}
+
+.omni-reflection { max-height: calc(100dvh - 32px); overflow-y: auto; }
+.omni-calendar { height: min(72vh, 1000px); overflow-y: auto; }
+@media (max-width: 767px) {
+  aside.sticky { width: 64px; padding-inline: 6px; }
+  aside.sticky nav button { font-size: 0; justify-content: center; padding-inline: 6px; }
+  aside.sticky > div:first-child > div:last-child, aside.sticky > div:last-child { display: none; }
+  main { padding: 16px !important; }
 }
 
 @utility panel { @apply rounded-2xl border border-border bg-card p-5; }
