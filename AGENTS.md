@@ -9,6 +9,8 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
-- All app data is client-only: zustand persist (localStorage) in src/lib/store.ts, audio files in IndexedDB (src/lib/audio.ts); app renders inside ClientOnly in __root — why: offline-first single-user app with no backend.
+- All app data is client-only: Zustand persists through IndexedDB with localStorage fallback, and audio uses IndexedDB with localStorage fallback; the workspace renders inside ClientOnly — why: private offline-first use without a backend.
+- Keep seven dashboard components mounted under the index workspace and switch visibility through the global tab store — why: preserve editor and filter state without navigation reads.
+- Register the generated offline worker only through the preview-guarded PWA wrapper; folder backups subscribe to note, habit and time-log changes — why: protect previews and serialize external backup writes.
 - Timer/stopwatch/countdown state lives in the global src/lib/timer.ts store, ticked by Engine in __root — why: timers must keep running across tab navigation.
 - Reusable style primitives (panel, btn-*, field, chip, label-xs) are Tailwind `@utility` blocks in src/styles.css — why: v4 @apply only resolves utilities, not plain classes.
