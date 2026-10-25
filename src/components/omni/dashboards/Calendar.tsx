@@ -12,7 +12,7 @@ import { pad } from "@/lib/format";
 
 
 const ROW = 30; // px per 30 minutes
-const ICON: Record<Method, typeof Timer> = { Pomodoro: Timer, Stopwatch: Watch, Manual: PenLine };
+const ICON: Record<Method, typeof Timer> = { Pomodoro: Timer, Stopwatch: Watch, Manual: PenLine, QuickRoutine: Watch };
 const toHM = (min: number) => `${pad(min / 60)}:${pad(min % 60)}`;
 
 export function CalendarPage() {
