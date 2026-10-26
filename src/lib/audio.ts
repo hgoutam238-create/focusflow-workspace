@@ -19,6 +19,7 @@ export const AMBIENT_TRACKS = [
   { id: "rain", label: "Rain Sound" },
   { id: "white", label: "White Noise" },
   { id: "lofi", label: "Lofi Beats" },
+  { id: "pulse", label: "Adrenaline Pulse" },
 ];
 
 export function stopAmbient(track?: string) {
@@ -55,6 +56,19 @@ export function playAmbient(track: string, volume: number) {
     };
     click(); timers.push(window.setInterval(click, 1000));
   }
+  if (track === "pulse") {
+    // ~55 BPM low-frequency thump with a soft off-beat for rhythmic urgency.
+    const beat = () => {
+      const t = c.currentTime;
+      [[0, 0.5, 55], [0.545, 0.15, 70]].forEach(([d, level, f]) => {
+        const o = c.createOscillator(); const g = c.createGain(); o.type = "sine";
+        o.frequency.setValueAtTime(f, t + d); o.frequency.exponentialRampToValueAtTime(32, t + d + 0.25);
+        g.gain.setValueAtTime(level, t + d); g.gain.exponentialRampToValueAtTime(0.001, t + d + 0.3);
+        o.connect(g).connect(out); o.start(t + d); o.stop(t + d + 0.32);
+      });
+    };
+    beat(); timers.push(window.setInterval(beat, 60000 / 55));
+  }
   if (track === "lofi") {
     const chords = [[261.6, 329.6, 392, 493.9], [220, 261.6, 329.6, 392], [174.6, 220, 261.6, 329.6], [196, 246.9, 293.7, 349.2]];
     let i = 0;
@@ -76,6 +90,15 @@ export function playAmbient(track: string, volume: number) {
     play(); timers.push(window.setInterval(play, 2400));
     const crackle = noise(c, true); const g = c.createGain(); g.gain.value = 0.08; crackle.connect(g).connect(out); crackle.start(); sources.push(crackle);
   }
+}
+
+export function chime() {
+  const c = getCtx(); void c.resume(); const t = c.currentTime;
+  [1318.5, 1975.5].forEach((f, i) => {
+    const o = c.createOscillator(); const g = c.createGain(); o.type = "sine"; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(i ? 0.02 : 0.05, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t + 2.3);
+  });
 }
 
 export function beep() {

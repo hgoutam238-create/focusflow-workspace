@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { useData, uid, type Method } from "./store";
+import { RECOVERY_BREAK_MIN, STUCK_PROTOCOL_MIN } from "./energy";
 
 export type Mode = "work" | "short" | "long";
 export interface Pending {
@@ -17,6 +18,11 @@ interface TimerState {
   sw: { running: boolean; startAt: number | null; title: string; projectId: string | null; method: Method };
   activity: { running: boolean; startAt: number | null; title: string };
   cd: { running: boolean; endAt: number | null; remaining: number; total: number };
+  cu: { running: boolean; startAt: number | null; acc: number };
+  stuck: { open: boolean; endsAt: number | null; resume: boolean };
+  recoveryNext: boolean; recoveryActive: boolean;
+  openStuck: () => void; closeStuck: () => void; mandateRecovery: () => void;
+  cuStart: () => void; cuPause: () => void; cuReset: () => void;
   start: () => void; pause: () => void; reset: () => void; skip: () => void;
   setMode: (m: Mode) => void; setDuration: (m: Mode, min: number) => void;
   tick: () => void; endEarly: () => void; afterReflection: () => void;
@@ -35,6 +41,9 @@ export const useTimer = create<TimerState>()((set, get) => ({
   sw: { running: false, startAt: null, title: "", projectId: null, method: "Stopwatch" },
   activity: { running: false, startAt: null, title: "" },
   cd: { running: false, endAt: null, remaining: 0, total: 0 },
+  cu: { running: false, startAt: null, acc: 0 },
+  stuck: { open: false, endsAt: null, resume: false },
+  recoveryNext: false, recoveryActive: false,
 
   start: () => {
     const s = get();
@@ -65,9 +74,10 @@ export const useTimer = create<TimerState>()((set, get) => ({
     if (s.mode === "work") {
       const wc = s.workCount + 1;
       const next: Mode = wc % 4 === 0 ? "long" : "short";
-      set({ pending: buildPending(s, true), workCount: wc, mode: next, running: true, remaining: s.durations[next] * 60, endAt: Date.now() + s.durations[next] * 60000, sessionStartedAt: null, sessionDistractions: 0 });
+      const min = breakMin(s, next);
+      set({ pending: buildPending(s, true), workCount: wc, mode: next, running: true, remaining: min * 60, endAt: Date.now() + min * 60000, sessionStartedAt: null, sessionDistractions: 0, recoveryActive: s.recoveryNext, recoveryNext: false });
     } else {
-      set({ mode: "work", running: false, endAt: null, remaining: s.durations.work * 60 });
+      set({ mode: "work", running: false, endAt: null, remaining: s.durations.work * 60, recoveryActive: false });
       window.dispatchEvent(new CustomEvent("omni:break-done"));
     }
   },
@@ -82,7 +92,8 @@ export const useTimer = create<TimerState>()((set, get) => ({
     if (s.pending?.method === "Pomodoro" && s.mode === "work" && !s.sw.running) {
       const wc = s.workCount + 1;
       const next: Mode = wc % 4 === 0 ? "long" : "short";
-      set({ pending: nextPending, pendingQueue: s.pendingQueue.slice(1), workCount: wc, mode: next, remaining: s.durations[next] * 60, running: true, endAt: Date.now() + s.durations[next] * 60000, sessionStartedAt: null, sessionDistractions: 0 });
+      const min = breakMin(s, next);
+      set({ pending: nextPending, pendingQueue: s.pendingQueue.slice(1), workCount: wc, mode: next, remaining: min * 60, running: true, endAt: Date.now() + min * 60000, sessionStartedAt: null, sessionDistractions: 0, recoveryActive: s.recoveryNext, recoveryNext: false });
     } else set({ pending: nextPending, pendingQueue: s.pendingQueue.slice(1) });
   },
   setActiveTask: (id) => set({ activeTaskId: id, activeTargetTitle: null }),
@@ -118,7 +129,25 @@ export const useTimer = create<TimerState>()((set, get) => ({
   }),
   cdPause: () => set((s) => ({ cd: { ...s.cd, running: false, endAt: null } })),
   cdReset: () => set({ cd: { running: false, endAt: null, remaining: 0, total: 0 } }),
+  cuStart: () => set((s) => (s.cu.running ? {} : { cu: { ...s.cu, running: true, startAt: Date.now() } })),
+  cuPause: () => set((s) => (s.cu.running && s.cu.startAt ? { cu: { running: false, startAt: null, acc: s.cu.acc + Date.now() - s.cu.startAt } } : {})),
+  cuReset: () => set({ cu: { running: false, startAt: null, acc: 0 } }),
+  openStuck: () => {
+    const s = get(); const resume = s.running && s.mode === "work";
+    if (resume) get().pause();
+    set({ stuck: { open: true, endsAt: Date.now() + STUCK_PROTOCOL_MIN * 60000, resume } });
+  },
+  closeStuck: () => { const resume = get().stuck.resume; set({ stuck: { open: false, endsAt: null, resume: false } }); if (resume) get().start(); },
+  mandateRecovery: () => {
+    const s = get();
+    if (s.mode !== "work" && s.running) set({ remaining: RECOVERY_BREAK_MIN * 60, endAt: Date.now() + RECOVERY_BREAK_MIN * 60000, recoveryActive: true });
+    else set({ recoveryNext: true });
+  },
 }));
+
+export const cuElapsedMs = (cu: TimerState["cu"], now = Date.now()) => cu.acc + (cu.running && cu.startAt ? now - cu.startAt : 0);
+
+function breakMin(s: TimerState, next: Mode) { return s.recoveryNext ? Math.max(RECOVERY_BREAK_MIN, s.durations[next]) : s.durations[next]; }
 
 function buildPending(s: TimerState, full: boolean): Pending {
   return {
