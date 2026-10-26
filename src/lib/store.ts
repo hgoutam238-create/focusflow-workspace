@@ -33,7 +33,8 @@ export interface Collections {
   projects: Project[]; tasks: Task[]; habits: Habit[]; timeLogs: TimeLog[];
   brainDump: Distraction[]; reminders: Reminder[]; notes: Note[];
 }
-export interface Settings { ambientTrack: string | null; volume: number; binauralAutoplay: boolean; binauralId: string | null; ambientMix: Record<string, number>; muted: boolean; studyGoalHours: number }
+export interface Settings { ambientTrack: string | null; volume: number; binauralAutoplay: boolean; binauralId: string | null; ambientMix: Record<string, number>; muted: boolean; studyGoalHours: number; hyperFocus: boolean; mindfulnessPing: boolean; formulas: Formula[] }
+export interface Formula { id: string; name: string; expression: string; units: string }
 
 interface State extends Collections {
   settings: Settings;
@@ -61,7 +62,7 @@ export const useData = create<State>()(
   persist(
     (set) => ({
       projects: SEED_PROJECTS, tasks: SEED_TASKS, habits: [], timeLogs: [], brainDump: [], reminders: [], notes: [],
-      settings: { ambientTrack: null, volume: 0.5, binauralAutoplay: true, binauralId: null, ambientMix: {}, muted: false, studyGoalHours: 4 },
+      settings: { ambientTrack: null, volume: 0.5, binauralAutoplay: true, binauralId: null, ambientMix: {}, muted: false, studyGoalHours: 4, hyperFocus: false, mindfulnessPing: false, formulas: [] },
       add: (k, item) => set((s) => ({ [k]: [item, ...(s[k] as unknown[])] }) as Partial<State>),
       update: (k, id, patch) =>
         set((s) => ({ [k]: (s[k] as { id: string }[]).map((x) => (x.id === id ? { ...x, ...patch } : x)) }) as Partial<State>),
