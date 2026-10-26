@@ -60,7 +60,7 @@ export function playAmbient(track: string, volume: number) {
     // ~55 BPM low-frequency thump with a soft off-beat for rhythmic urgency.
     const beat = () => {
       const t = c.currentTime;
-      [[0, 0.5, 55], [0.545, 0.15, 70]].forEach(([d, level, f]) => {
+      ([[0, 0.5, 55], [0.545, 0.15, 70]] as const).forEach(([d, level, f]) => {
         const o = c.createOscillator(); const g = c.createGain(); o.type = "sine";
         o.frequency.setValueAtTime(f, t + d); o.frequency.exponentialRampToValueAtTime(32, t + d + 0.25);
         g.gain.setValueAtTime(level, t + d); g.gain.exponentialRampToValueAtTime(0.001, t + d + 0.3);

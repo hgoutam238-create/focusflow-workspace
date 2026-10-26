@@ -49,7 +49,7 @@ export function HyperFocusOverlay() {
       </div>
       <div className="mt-10 flex flex-wrap justify-center gap-2">
         {t.running ? <Button variant="ghost" className="btn-ghost" onClick={t.pause}>Pause</Button> : <Button variant="ghost" className="btn-focus" onClick={t.start}>Play</Button>}
-        <Button variant="ghost" className={pulse ? "btn-blue" : "btn-ghost"} onClick={() => { if (pulse) stopAmbient("pulse"); else playAmbient("pulse", (ambientMix.pulse ?? 0.35) * (muted ? 0 : volume * 2)); setPulse(!pulse); }}>Adrenaline Pulse {pulse ? "on" : "off"}</Button>
+        <Button variant="ghost" className={pulse ? "btn-blue" : "btn-ghost"} onClick={() => { if (pulse) stopAmbient("pulse"); else playAmbient("pulse", (ambientMix["pulse"] ?? 0.35) * (muted ? 0 : volume * 2)); setPulse(!pulse); }}>Adrenaline Pulse {pulse ? "on" : "off"}</Button>
         <Button variant="ghost" className="btn-ghost" onClick={() => setSettings({ hyperFocus: false })}><X className="h-4 w-4" />Exit</Button>
       </div>
     </div>
@@ -124,9 +124,9 @@ export function StuckModal() {
   const finish = (schedule: boolean) => {
     const raw = `# Stuck protocol · ${task?.title ?? activeTargetTitle ?? "Problem"}\n\n${STEPS.map((s, i) => `**${i + 1}. ${s.title}:** ${answers[i]}`).join("\n\n")}\n\n**4. Alternative Path:** ${schedule ? "Scheduled a Review Block and moved on." : "Resolved within the protocol."}`;
     const now = new Date().toISOString();
-    add("notes", { id: uid(), project_id: projectId, title: `Stuck: ${answers[0].slice(0, 60)}`, raw_content: raw, markdown_html: "", created_at: now, updated_at: now, category_tag: "Action Plan", absolute_privacy_flag: false });
+    add("notes", { id: uid(), project_id: projectId, title: `Stuck: ${(answers[0] ?? "").slice(0, 60)}`, raw_content: raw, markdown_html: "", created_at: now, updated_at: now, category_tag: "Action Plan", absolute_privacy_flag: false });
     if (schedule) {
-      add("tasks", { id: uid(), project_id: projectId, title: `Review Block: ${answers[0].slice(0, 80)}`, notes: raw, priority_level: "High", due_date: "", completed_boolean: false, estimated_pomodoros: 1, completed_pomodoros: 0, daily_grouping_bucket: "Tomorrow" });
+      add("tasks", { id: uid(), project_id: projectId, title: `Review Block: ${(answers[0] ?? "").slice(0, 80)}`, notes: raw, priority_level: "High", due_date: "", completed_boolean: false, estimated_pomodoros: 1, completed_pomodoros: 0, daily_grouping_bucket: "Tomorrow" });
       toast.success("Review Block scheduled for tomorrow — next question!");
     } else toast.success("Blocker broken. Back to work.");
     setAnswers(["", "", ""]); closeStuck();
